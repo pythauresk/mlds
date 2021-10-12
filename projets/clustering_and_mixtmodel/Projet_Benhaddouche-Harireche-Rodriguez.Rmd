@@ -1,0 +1,823 @@
+---
+title: "Projet Clustering & Modèles de mélange"
+output: html_document
+---
+
+  
+                        Douaa BENHADDOUCHE - Lilia HARIRECHE - Antoine RODRIGUEZ
+                        
+                                              MLDS FA
+
+
+L'objectif de ce projet est de mettre en pratique différentes méthodes et packages de clustering permettant de partitionner correctement des jeux de données de grande dimension.
+
+Pour cela nous allons utiliser les packages: **NbClust**, **mclust**, **Rmixmod**, ainsi appliquer plusieurs méthodes, algorithmes et fonctions sur les 5 jeux de données décrits ci-dessous.
+
+```{r setup, include=FALSE}
+library(R.matlab)
+library(FactoMineR)
+library(NbClust)
+library(caret)
+library(Rmixmod)
+library(mclust)
+library(aricode)
+library(clue)
+library(Rtsne)
+library(iterators)
+```
+
+
+## **1. Description des tables de données d'image**
+
+- Japanese Female Facial Expressers dataset (JAFFE): contient 213 images de 7 expressions faciales posées par 10 modèles féminins japonais. Chaque image est composée de 676 pixels, et labelisée en fonction de la personne photographiée, et donc nombre de classes égale à 10.
+
+- Modified ou Mixed National Institute of Standards and Technology dataset (MNIST): est une base de données de chiffres écrits à la main, elle comporte un ensemble de 3495 exemples avec 784 variables. Chaque image est de 28*28 pixelset en niveaux de gris.
+
+- MFEA: ce jeu de données contient 2000 avec 241 variables.
+
+- US Postal Service dataset (USPS): L’ensemble de données fait référence aux données numériques obtenues à partir du balayage des chiffres manuscrits à partir des enveloppes par le service postal des États-Unis. Il contient 9298 images dont 7291 train and 2007 test, avec 256 variables. Chaque image est de 16*16 pixels et en niveaux de gris.
+
+- Optical recognition of handwritten digits data set (OPTIDIGITS): une base de données de chiffres manuscrits qui comporte 5620 images de chiffres et 64 variables. Chaque image est de 8*8 pixels et en niveaux de gris.
+
+## **2. Chargement des tables **
+
+```{r warning = FALSE}
+#load datasets
+setwd("C:/Users/rodri/Desktop/TRAVAUXENCOURS/__Projet_MixtCoclust")
+jaffe = readMat("jaffe.mat")
+MNIST = readMat("MNIST5.mat")
+MFEA = readMat("MFEAT1.mat")
+optidigits = readMat("Optdigits.mat")
+USPS = readMat("USPS.mat")
+```
+
+
+```{r}
+# convert .Mat datasets to datafames
+# JAFFE
+data.jaffe =lapply(jaffe, unlist, use.names=FALSE)
+data.jaffe = as.data.frame(data.jaffe$X)
+class = as.factor(t(as.data.frame(jaffe$y)))
+data.jaffe = data.frame(jaffe$X,class)
+
+# MNIST
+data.MNIST =lapply(MNIST, unlist, use.names=FALSE)
+data.MNIST = as.data.frame(data.MNIST$X)
+class = as.factor(t(as.data.frame(MNIST$y)))
+data.MNIST = data.frame(MNIST$X,class)
+
+# MFEA
+data.MFEA =lapply(MFEA, unlist, use.names=FALSE)
+data.MFEA = as.data.frame(data.MFEA$X)
+class = as.factor(t(as.data.frame(MFEA$y)))
+data.MFEA = data.frame(MFEA$X,class)
+
+# USPS
+data.USPS =lapply(USPS, unlist, use.names=FALSE)
+data.USPS = as.data.frame(data.USPS$X)
+class = as.factor(t(as.data.frame(USPS$y)))
+data.USPS = data.frame(USPS$X,class)
+
+# OPTIDIGITS
+data.optidigits =lapply(optidigits, unlist, use.names=FALSE)
+data.optidigits = as.data.frame(data.optidigits$X)
+class = as.factor(t(as.data.frame(optidigits$y)))
+data.optidigits = data.frame(optidigits$X,class)
+rm(class)
+```
+
+## **3. Analyse en composantes principales **
+
+Afin de visualiser les datasets ci dessus sur les deux plans factoriels, nous allons appliquer l'ACP.
+
+```{r eval=FALSE}
+#jaffe
+pca.jaffe = PCA(data.jaffe, ncp=2, quali.sup = 677, graph = FALSE)
+plot(pca.jaffe, habillage=677, title = "PCA des individus de JAFFE")
+
+#MNIST
+pca.MNIST = PCA(data.MNIST, ncp=2, quali.sup = 785, graph= FALSE)
+plot(pca.MNIST, habillage=785, title = "PCA des individus de MNIST")
+
+#MFEA
+pca.MFEA = PCA(data.MFEA, ncp=2, quali.sup = 241, graph= FALSE)
+plot(pca.MFEA, habillage=241, title = "PCA des individus de MFEA")
+
+#USPS
+pca.USPS = PCA(data.USPS, ncp=2, quali.sup = 257, graph = FALSE)
+plot(pca.USPS, habillage=257, title = "PCA des individus de USPS")
+
+#OPTIDIGITS
+pca.optidigits = PCA(data.optidigits, ncp=2, quali.sup = 65, graph = FALSE)
+plot(pca.optidigits, habillage=65, title = "PCA des individus de OPTIDIGITS")
+```
+
+```{r eval=FALSE, include=FALSE}
+saveRDS(pca.MNIST, 'pcas/pca.MNIST')
+saveRDS(pca.MFEA, 'pcas/pca.MFEA')
+saveRDS(pca.USPS, 'pcas/pca.USPS')
+saveRDS(pca.optidigits, 'pcas/pca.optidigits')
+saveRDS(pca.jaffe, 'pcas/pca.jaffe')
+```
+
+```{r  include=FALSE}
+pca.MNIST <- readRDS('pcas/pca.MNIST')
+pca.MFEA <- readRDS('pcas/pca.MFEA')
+pca.USPS <- readRDS('pcas/pca.USPS')
+pca.optidigits <- readRDS('pcas/pca.optidigits')
+pca.jaffe <- readRDS('pcas/pca.jaffe')
+```
+
+Les graphes obtenus ci dessous, nous montre que: 
+
+- sur le dataset *JAFFE*, les classes sont bien distinguées, elles sont linéairement séparables. 
+
+- Toutefois sur les autres jeux de données, nous remarquons qu'il est impossible de distinguées les classes, elles ne sont pas linéairement séparables, car l'ACP n'est pas adaptée aux datasets à grande dimension et contenant des données sparse.
+
+
+## **4. Recherche du nombre de clusters : NbClust **
+
+Nous voulons partitionner l'ensemble des observations, pour cela nous allons utiliser le package **Nbclust** pour réaliser un **kmeans** et des **CAH** avec différents critères d'agrégation.
+
+**NOTE IMPORTANTE**
+Comme la nature des  datasets est similaire, on se propose dans la suite de ne présenter 
+qu'uniquement les codes d'execution des méthodes pour le dataset JAFFE, les affichages seront quand à eux bien évidemment présents: 
+
+
+```{r eval=FALSE}
+set.seed(42)
+# jaffe kmeans 
+km.jaffe=NbClust(data.jaffe[,!colnames(data.jaffe)=='class'], method = "kmeans",
+                 distance = "euclidean", index = "silhouette",min.nc = 5, max.nc = 30)
+
+# jaffe CAH WARD 
+ward.jaffe=NbClust(data.jaffe[,-677], method = "ward.D",
+                   index = "silhouette",min.nc = 5,  max.nc = 30)
+
+# jaffe CAH AVERAGE
+average.jaffe=NbClust(data.jaffe[,-677], method = "average",index ="silhouette",
+                      min.nc = 5, max.nc = 30)
+
+# jaffe CAH SINGLE 
+single.jaffe=NbClust(data.jaffe[,-677], method = "single",index = "silhouette",
+                     min.nc = 5, max.nc = 30)
+
+# jaffe complete
+complete.jaffe=NbClust(data.jaffe[,-677], method = "complete",index = "silhouette",
+                       min.nc = 5, max.nc = 30)
+```
+
+On sauvegarde les résultats : (de la même manières pour les 4 autres datasets)
+
+```{r eval=FALSE}
+saveRDS(km.jaffe, "resultats/km.jaffe")
+saveRDS(ward.jaffe, "resultats/ward.jaffe")
+saveRDS(average.jaffe, "resultats/average.jaffe")
+saveRDS(single.jaffe, "resultats/single.jaffe")
+saveRDS(complete.jaffe, "resultats/complete.jaffe")
+```
+
+```{r include=FALSE}
+km.jaffe <- readRDS("resultats/km.jaffe")
+ward.jaffe <- readRDS("resultats/ward.jaffe")
+average.jaffe <- readRDS("resultats/average.jaffe")
+single.jaffe <- readRDS("resultats/single.jaffe")
+complete.jaffe <- readRDS("resultats/complete.jaffe")
+```
+
+### Affichages des nombres de classes 
+
+Affichage de nombre de classes trouvées par les différents algorithmes :
+```{r}
+print(km.jaffe$Best.nc[1])
+print(ward.jaffe$Best.nc[1])
+print(average.jaffe$Best.nc[1])
+print(single.jaffe$Best.nc[1])
+print(complete.jaffe$Best.nc[1])
+```
+
+Affichage des partitions:
+```{r}
+plot(pca.jaffe$ind$coord,col=km.jaffe$Best.partition,
+     main = paste("Kmeans sur JAFFE \n Nombre de classes : ", km.jaffe$Best.nc[1]))
+plot(pca.jaffe$ind$coord,col=ward.jaffe$Best.partition,
+     main = paste("CAH Ward sur JAFFE\n Nombre de classes : ", ward.jaffe$Best.nc[1]))
+plot(pca.jaffe$ind$coord,col=average.jaffe$Best.partition,
+     main = paste("CAH average sur JAFFE \n Nombre de classes : ", average.jaffe$Best.nc[1]))
+plot(pca.jaffe$ind$coord,col=single.jaffe$Best.partition,
+     main = paste("CAH single sur JAFFE \n Nombre de classes : ", single.jaffe$Best.nc[1]))
+plot(pca.jaffe$ind$coord,col=complete.jaffe$Best.partition,
+     main = paste("CAH complete sur JAFFE \n Nombre de classes : ", complete.jaffe$Best.nc[1]))
+```
+
+
+### Consensus
+
+Pour réaliser un consensus des 5 différentes partitions trouvées (pour chacun des 5 datasets),
+nous pourrions utiliser les fonction `cl_ensemble` et `cl_consensus` du package `clue` : 
+
+
+```{r eval=FALSE}
+# création de l'objet cluster ensemble
+NbClust_results <-list(km.jaffe$Best.partition, ward.jaffe$Best.partition,
+                       average.jaffe$Best.partition, single.jaffe$Best.partition,
+                       complete.jaffe$Best.partition)
+names(NbClust_results) <- c('kmeans','ward','average','single','complete') 
+ens <- cl_ensemble(NbClust_results)
+```
+
+On obtiendrait alors le consensus de clustering avec la fonction : 
+
+```{r eval=FALSE}
+cl_consensus(ens)
+```
+
+Or l'objet renvoyé par `NbClust` ne contient pas une partition au sens du
+package `clue` :
+```{r eval=FALSE}
+is.cl_partition(NbClust_results) # renvoie FALSE
+```
+Une partition en ce sens est un tableau contenant la probabilité pour chaque 
+individus d'apartenir à une classe. 
+
+(Voir 2.1.1 dans https://mirror.las.iastate.edu/CRAN/web/packages/clue/vignettes/clue.pdf )
+
+### Autres datasets 
+
+Le détail des autres datasets est disponible dans l'annexe de la question 4.
+
+
+## **5. Clustering à partir des deux premières composantes ACP: utiliser HCPC **
+
+
+```{r eval=FALSE}
+hcpcward.jaffe = HCPC(pca.jaffe, nb.clust = -1, method = "ward", graph=FALSE)
+
+hcpccomp.jaffe = HCPC(pca.jaffe, nb.clust = -1, method = "complete", graph=FALSE)
+
+hcpcsingle.jaffe = HCPC(pca.jaffe, nb.clust = -1, method = "single", graph=FALSE)
+
+hcpcav.jaffe = HCPC(pca.jaffe, nb.clust = -1, method = "average", graph=FALSE)
+
+```
+
+```{r eval=FALSE, include=FALSE}
+saveRDS(hcpcward.jaffe$data.clust$clust,"resultats/hcpcward.jaffe")
+saveRDS(hcpcav.jaffe$data.clust$clust,"resultats/hcpcav.jaffe")
+saveRDS(hcpcsingle.jaffe$data.clust$clust,"resultats/hcpcsingle.jaffe")
+saveRDS(hcpccomp.jaffe$data.clust$clust,"resultats/hcpccomp.jaffe")
+```
+
+```{r include=FALSE}
+hcpcward.jaffe <- readRDS("resultats/hcpcward.jaffe")
+hcpcav.jaffe <- readRDS("resultats/hcpcav.jaffe")
+hcpcsingle.jaffe <- readRDS("resultats/hcpcsingle.jaffe")
+hcpccomp.jaffe <- readRDS("resultats/hcpccomp.jaffe")
+```
+
+```{r}
+print(length(unique(hcpcward.jaffe)))
+print(length(unique(hcpcav.jaffe)))
+print(length(unique(hcpcsingle.jaffe)))
+print(length(unique(hcpccomp.jaffe)))
+```
+
+### Autres datasets
+
+```{r include=FALSE}
+hcpcward.MNIST <- readRDS("resultats/hcpcward.MNIST")
+hcpcav.MNIST <- readRDS("resultats/hcpcav.MNIST")
+hcpcsingle.MNIST <- readRDS("resultats/hcpcsingle.MNIST")
+hcpccomp.MNIST <- readRDS("resultats/hcpccomp.MNIST")
+```
+
+```{r}
+# Affichage du nombres de partitions pour chacune des méthodes appliquées à MNIST
+print(length(unique(hcpcward.MNIST)))
+print(length(unique(hcpcav.MNIST)))
+print(length(unique(hcpcsingle.MNIST)))
+print(length(unique(hcpccomp.MNIST)))
+```
+
+```{r include=FALSE}
+hcpcward.MFEA <- readRDS("resultats/hcpcward.MFEA")
+hcpcav.MFEA <- readRDS("resultats/hcpcav.MFEA")
+hcpcsingle.MFEA <- readRDS("resultats/hcpcsingle.MFEA")
+hcpccomp.MFEA <- readRDS("resultats/hcpccomp.MFEA")
+```
+
+```{r}
+# Affichage du nombres de partitions pour chacune des méthodes appliquées à MFEA
+print(length(unique(hcpcward.MFEA)))
+print(length(unique(hcpcav.MFEA)))
+print(length(unique(hcpcsingle.MFEA)))
+print(length(unique(hcpccomp.MFEA)))
+```
+
+
+```{r include=FALSE}
+hcpcward.USPS <- readRDS("resultats/hcpcward.USPS")
+hcpcav.USPS <- readRDS("resultats/hcpcav.USPS")
+hcpcsingle.USPS <- readRDS("resultats/hcpcsingle.USPS")
+hcpccomp.USPS <- readRDS("resultats/hcpccomp.USPS")
+```
+
+```{r}
+# Affichage du nombres de partitions pour chacune des méthodes appliquées à USPS
+print(length(unique(hcpcward.USPS)))
+print(length(unique(hcpcav.USPS)))
+print(length(unique(hcpcsingle.USPS)))
+print(length(unique(hcpccomp.USPS)))
+```
+
+```{r include=FALSE}
+hcpcward.optidigits <- readRDS("resultats/hcpcward.optidigits")
+hcpcav.optidigits <- readRDS("resultats/hcpcav.optidigits")
+hcpcsingle.optidigits <- readRDS("resultats/hcpcsingle.optidigits")
+hcpccomp.optidigits <- readRDS("resultats/hcpccomp.optidigits")
+```
+
+```{r}
+# Affichage du nombres de partitions pour chacune des méthodes appliquées à optidigits
+print(length(unique(hcpcward.optidigits)))
+print(length(unique(hcpcav.optidigits)))
+print(length(unique(hcpcsingle.optidigits)))
+print(length(unique(hcpccomp.optidigits)))
+```
+
+## **6. Comparaison des partitions: matrices de confusion **
+
+```{r}
+#jaffe
+table(km.jaffe$Best.partition,data.jaffe$class)
+
+table(ward.jaffe$Best.partition,data.jaffe$class)
+table(hcpcward.jaffe, data.jaffe$class)
+
+table(average.jaffe$Best.partition,data.jaffe$class)
+table(hcpcav.jaffe, data.jaffe$class)
+
+table(single.jaffe$Best.partition,data.jaffe$class)
+table(hcpcsingle.jaffe, data.jaffe$class)
+
+table(complete.jaffe$Best.partition,data.jaffe$class)
+table(hcpccomp.jaffe, data.jaffe$class)
+```
+
+Les autres tables ont été calculsées sur `Annexe_codes_autres_datasets.Rmd`
+
+
+## **7. Algorithme EM pour l'approche mélange**
+
+On applique les packages Rmixmod et Mclust pour cette approche en utilisant l'algorithme EM:
+
+```{r}
+# Rmixmod
+pc.jaffe = prcomp(data.jaffe[,!colnames(data.jaffe)=='class']) 
+
+# definition d'une stratégie nécessaire
+strategie = mixmodStrategy(algo="EM", initMethod="smallEM",
+                         nbTry=10, epsilonInInit=0.00001)
+em_mix.jaffe = mixmodCluster(data=as.data.frame(pc.jaffe$x[,1:10]), nbCluster=10,
+                        strategy=strategie, dataType="quantitative",
+                        models=mixmodGaussianModel(listModels=c("Gaussian_p_Lk_C")))
+```
+
+```{r}
+# Mclust
+em_mc.jaffe = Mclust(data = pc.jaffe$x[,1:10], G=10, verbose=FALSE)
+```
+
+Nous aurions pu utiliser `pca.jaffe` et mais nous n'avions gardé que les 2 premières 
+composantes principales donc nous avons préféré garder une PCA plus complète avec 
+ses 10 premières composantes.
+
+```{r eval=FALSE}
+em_mc.jaffe = Mclust(data = pca.jaffe$var$coord, G=10, verbose=FALSE)
+```
+
+On choisit d'enregistrer uniquement les partitions :
+
+```{r eval=FALSE}
+saveRDS(em_mix.jaffe@bestResult@partition, "resultats/em_mix.jaffe")
+saveRDS(em_mc.jaffe$classification, "resultats/em_mc.jaffe")
+```
+
+### **8. **
+
+```{r}
+cm = table(em_mix.jaffe@bestResult@partition, em_mc.jaffe$classification)
+lin_assignement = solve_LSAP(cm, maximum=TRUE)
+cm = table(lin_assignement[em_mix.jaffe@bestResult@partition],
+           em_mc.jaffe$classification)
+cm
+```
+Le nombre de classes que nous pouvons proposez après l'execution de l'algorithme 
+EM est 10. La classification avec Mclust est plus efficace nous remarquons qu'il 
+n'existe pas d'élements en dehors de la diagonale de table de confusion. 
+
+### **9. **
+MclustDR est une méthode de réduction de dimension pour visualiser le clustering 
+issu d'un mélange de densités gaussiennes.
+
+```{r eval=FALSE}
+#jaffe1
+mdr.jaffe = MclustDR(em_mc.jaffe)
+plot(mdr.jaffe)
+```
+
+Ces affichages ne sont pas adaptés car nous ne sommes pas en présences de mélange gaussiens.
+
+
+```{r include=FALSE}
+em_mix.jaffe <- readRDS("resultats/em_mix.jaffe")
+em_mc.jaffe <- readRDS("resultats/em_mc.jaffe")
+```
+
+```{r include=FALSE}
+em_mix.MNIST <- readRDS("resultats/em_mix.MNIST")
+em_mc.MNIST <- readRDS("resultats/em_mc.MNIST")
+```
+
+```{r include=FALSE}
+em_mix.MFEA <- readRDS("resultats/em_mix.MFEA")
+em_mc.MFEA <- readRDS("resultats/em_mc.MFEA")
+```
+
+```{r include=FALSE}
+em_mix.USPS <- readRDS("resultats/em_mix.USPS")
+em_mc.USPS <- readRDS("resultats/em_mc.USPS")
+```
+
+```{r include=FALSE}
+em_mix.optidigits <- readRDS("resultats/em_mix.optidigits")
+em_mc.optidigits <- readRDS("resultats/em_mc.optidigits")
+```
+
+
+## **10. Etude comparative entre les résultats des différents algorithmes**
+
+Utilisons la librairie `aricode` pour calculer les indices NMI et ARI de chacunes des méthodes
+décrites plus tôt.
+
+L'indice NMI mesure l'information mutuelle et tends à être grande quand le clustering est bon.
+L'ARI mesure l'indice de Rand entre deux partitions, qui est n'est autre qu'une mesure de similarité : 
+plus celui-ci est grand, plus deux partitions sont proches au sens de cette mesure.
+
+On définit une fonction calculant le taux de mauvais classement pour chacune des méthodes :
+
+```{r eval=FALSE}
+library(clue) # solve_LSAP
+bad_ratio <- function(predicted.labels, true.labels){
+  # -------
+  # predicted.labels : labels found with clustering method
+  # -------
+  cm = table(predicted.labels, true.labels)
+  lin_assignement = solve_LSAP(cm, maximum=TRUE) # réalise algorithme hongrois
+  # pour maximiser la diagonale  http://search.r-project.org/library/clue/html/solve_LSAP.html
+  cm = table(lin_assignement[predicted.labels], true.labels)
+  
+  ratio <- 1 - sum(diag(cm))/length(predicted.labels)
+  return(ratio)
+}
+```
+
+Ainsi qu'une fonction qui va créer les tableaux récapitulatifs de chacuns des indices 
+pour chaque méthode (avec le vrai nombre de classe) et chaque dataset.
+
+Les tableaux `nommethode_10.nomtablea` ont été calculés et enregistrés 
+via la fonction `apply_clustering()` suivante :
+
+
+```{r eval=FALSE}
+library(iterators)
+# function to create row of a dataframe with a certain indicator (bad-ratio,NMI and ARI)
+apply_clustering <- function(data, pca.data, mc.data, mix.data, rowname){
+  # -------
+  # data : original data, pca.data : PCA on data
+  # mc.data : EM with mclust on data  (em_mc.X)
+  # mix.data : EM with Rmixmod on data (em_mix.X)
+  # rowname : name of data, fun_indice : function bad_radio, aricode::NMI or aricode::ARI
+  # -------
+  # init data.frame
+  
+  # for printing progress
+  iterator = iter(seq(1, 11, length.out = 11))
+  progress <- function(){cat(nextElem(iterator), "/11\r") ; flush.console()}
+  # ----
+  
+  tmc = data.frame(rownames=rowname)
+  nmi = data.frame(rownames=rowname)
+  ari = data.frame(rownames=rowname)
+  results.data <- NbClust(data[,!colnames(data)=='class'], method = "kmeans",
+                         distance = "euclidean", index = "silhouette", 
+                         min.nc = 10, max.nc = 10)
+  # remplissage des tableaux 
+  tmc$kmeans = bad_ratio(results.data$Best.partition, data$class)
+  nmi$kmeans = NMI(results.data$Best.partition, data$class)
+  ari$kmeans = ARI(results.data$Best.partition, data$class)
+  # enregistrement de la partition
+  saveRDS(results.data$Best.partition, paste('resultats/km_10.', rowname, sep=""))
+  progress() # affiche la progression
+  
+  
+  # la suite est similaire pour les autres méthodes :
+  # ------
+  results.data <- NbClust(data[,!colnames(data)=='class'], method="ward.D",
+                         index="silhouette", min.nc=10,  max.nc=10)
+  tmc$ward = bad_ratio(results.data$Best.partition, data$class)
+  nmi$ward = NMI(results.data$Best.partition, data$class)
+  ari$ward = ARI(results.data$Best.partition, data$class)
+  saveRDS(results.data$Best.partition, paste('resultats/ward_10.', rowname, sep=""))
+  progress()
+  
+  results.data <- NbClust(data[,!colnames(data)=='class'], method="average",
+                         index="silhouette", min.nc=10,  max.nc=10)
+  tmc$average = bad_ratio(results.data$Best.partition, data$class)
+  nmi$average = NMI(results.data$Best.partition, data$class)
+  ari$average = ARI(results.data$Best.partition, data$class)
+  saveRDS(results.data$Best.partition, paste('resultats/average_10.', rowname, sep=""))
+  progress()
+  
+  results.data <- NbClust(data[,!colnames(data)=='class'], method="single",
+                         index="silhouette", min.nc=10,  max.nc=10)
+  tmc$single = bad_ratio(results.data$Best.partition, data$class)
+  nmi$single = NMI(results.data$Best.partition, data$class)
+  ari$single = ARI(results.data$Best.partition, data$class)
+  saveRDS(results.data$Best.partition, paste('resultats/single_10.', rowname, sep=""))
+  progress()
+  
+  results.data <- NbClust(data[,!colnames(data)=='class'], method="complete",
+                         index="silhouette", min.nc=10,  max.nc=10)
+  tmc$complete = bad_ratio(results.data$Best.partition, data$class)
+  nmi$complete = NMI(results.data$Best.partition, data$class)
+  ari$complete = ARI(results.data$Best.partition, data$class)
+  saveRDS(results.data$Best.partition, paste('resultats/complete_10.', rowname, sep=""))
+  progress()
+  
+  results.data <- HCPC(pca.data, nb.clust=10, method="ward", graph=FALSE)
+  tmc$HCPCward = bad_ratio(results.data$data.clust$clust, data$class)
+  nmi$HCPCward = NMI(results.data$data.clust$clust, data$class)
+  ari$HCPCward = ARI(results.data$data.clust$clust, data$class)
+  saveRDS(results.data$data.clust$clust, paste('resultats/hcpcward_10.', rowname, sep=""))
+  progress()
+  
+  results.data <- HCPC(pca.data, nb.clust=10, method="complete", graph=FALSE)
+  tmc$HCPCcomplete = bad_ratio(results.data$data.clust$clust, data$class)
+  nmi$HCPCcomplete = NMI(results.data$data.clust$clust, data$class)
+  ari$HCPCcomplete = ARI(results.data$data.clust$clust, data$class)
+  saveRDS(results.data$data.clust$clust, paste('resultats/hcpccomp_10.', rowname, sep=""))
+  progress()
+  
+  results.data <- HCPC(pca.data, nb.clust=10, method="single", graph=FALSE)
+  tmc$HCPCsingle = bad_ratio(results.data$data.clust$clust, data$class)
+  nmi$HCPCsingle = NMI(results.data$data.clust$clust, data$class)
+  ari$HCPCsingle = ARI(results.data$data.clust$clust, data$class)
+  saveRDS(results.data$data.clust$clust, paste('resultats/hcpcsingle_10.', rowname, sep=""))
+  progress()
+  
+  results.data <- HCPC(pca.data, nb.clust=10, method="average", graph=FALSE)
+  tmc$HCPCaverage = bad_ratio(results.data$data.clust$clust, data$class)
+  nmi$HCPCaverage = NMI(results.data$data.clust$clust, data$class)
+  ari$HCPCaverage = ARI(results.data$data.clust$clust, data$class)
+  saveRDS(results.data$data.clust$clust, paste('resultats/hcpcav_10.', rowname, sep=""))
+  progress()
+  # -----
+  
+  # on ne recalcule pas les EM qui sont déjà à 10 classes
+  
+  tmc$EMmc = bad_ratio(mc.data, data$class)
+  nmi$EMmc = NMI(mc.data, data$class)
+  ari$EMmc = ARI(mc.data, data$class)
+  # déjà enregistré
+  progress()
+  
+  tmc$EMrmixmod = bad_ratio(mix.data, data$class)
+  nmi$EMrmixmod = NMI(mix.data, data$class)
+  ari$EMrmixmod = ARI(mix.data, data$class)
+  progress()
+  return(list(tmc , nmi, ari)) 
+}
+```
+
+```{r eval=FALSE}
+temp = apply_clustering(data.jaffe, pca.jaffe, em_mc.jaffe, em_mix.jaffe, 'jaffe')
+df.tmc = temp[[1]]
+df.nmi = temp[[2]]
+df.ari = temp[[3]]
+
+temp = apply_clustering(data.MNIST, pca.MNIST, em_mc.MNIST, em_mix.MNIST, 'MNIST')
+# on concatene les tableaux par les lignes 
+df.tmc = rbind(df.tmc, temp[[1]])
+df.nmi = rbind(df.nmi, temp[[2]])
+df.ari = rbind(df.ari, temp[[3]])
+# chaque ligne représentant un dataset
+
+temp = apply_clustering(data.MFEA, pca.MFEA, em_mc.MFEA, em_mix.MFEA, 'MFEA')
+df.tmc = rbind(df.tmc, temp[[1]])
+df.nmi = rbind(df.nmi, temp[[2]])
+df.ari = rbind(df.ari, temp[[3]])
+
+temp = apply_clustering(data.USPS, pca.USPS, em_mc.USPS, em_mix.USPS, 'USPS')
+df.tmc = rbind(df.tmc, temp[[1]])
+df.nmi = rbind(df.nmi, temp[[2]])
+df.ari = rbind(df.ari, temp[[3]])
+
+temp = apply_clustering(data.optidigits, pca.optidigits, em_mc.optidigits, 
+                        em_mix.optidigits, 'optidigits')
+df.tmc = rbind(df.tmc, temp[[1]])
+df.nmi = rbind(df.nmi, temp[[2]])
+df.ari = rbind(df.ari, temp[[3]])
+```
+
+
+```{r eval=FALSE}
+saveRDS(df.tmc, "resultats/df.tmc")
+saveRDS(df.nmi, "resultats/df.nmi")
+saveRDS(df.ari, "resultats/df.ari")
+```
+
+
+### **Visualisation des indices**
+
+```{r include=FALSE}
+df.tmc <- readRDS("resultats/df.tmc")
+df.ari <- readRDS("resultats/df.ari")
+df.nmi <- readRDS("resultats/df.nmi")
+```
+
+```{r}
+# Taux de mauvais classement
+df.tmc
+```
+```{r}
+# Indice ARI pour chacunes des méthodes
+df.ari
+```
+
+```{r}
+# Indice ARI pour chacunes des méthodes
+df.nmi
+```
+En terme d'indice NMI et ARI la méthode single semble donner les meilleurs résultats. 
+
+
+
+## **11. **
+
+Appliquons l'algorithme t-SNE (*t-distributed stochastic neighbor embedding*) pour réduire la dimension
+et afficher les résultats de nos classes obtenues pour chaque méthode.
+
+```{r eval=FALSE}
+tsne.jaffe=Rtsne(data.jaffe[,!colnames(data.jaffe)=='class'], dim=2, perplexity=50)
+tsne.MNIST=Rtsne(data.MNIST[,!colnames(data.MNIST)=='class'], dim=2, perplexity=50)
+# tsne.MFEA=Rtsne(data.MFEA[,!colnames(data.MFEA)=='class'], dim=2, perplexity=50)
+tsne.USPS=Rtsne(data.USPS[,!colnames(data.USPS)=='class'], dim=2, perplexity=50)
+tsne.optidigits=Rtsne(data.optidigits[,!colnames(data.optidigits)=='class'], dim=2, perplexity=50)
+```
+
+```{r eval=FALSE, include=FALSE}
+saveRDS(tsne.jaffe,"resultats/tsne.jaffe")
+saveRDS(tsne.optidigits,"resultats/tsne.optidigits")
+saveRDS(tsne.MNIST,"resultats/tsne.MNIST")
+saveRDS(tsne.USPS,"resultats/tsne.USPS")
+```
+
+```{r include=FALSE}
+tsne.USPS <- readRDS("resultats/tsne.USPS")
+tsne.MNIST <- readRDS("resultats/tsne.MNIST")
+tsne.optidigits <- readRDS("resultats/tsne.optidigits")
+tsne.jaffe <- readRDS("resultats/tsne.jaffe")
+```
+
+```{r}
+plot_tsne <- function (tsne, predicted.classes, amain){
+  plot(tsne$Y,
+       col=predicted.classes,
+       xlab="1ere composante",
+       ylab="2eme composante",
+       main=paste(amain, "sur le plan produit par t-SNE", sep=" "))
+}
+
+plot_tsne(tsne.jaffe, data.jaffe$class, amain="Partition des classes")
+```
+
+Les différentes visualisations sont représentées dans l'**annexe de la question 11** 
+(excepté pour le dataset MFEA où nous n'avons pas pu réaliser la réduction t-SNE).
+
+## **12. Reduction de dimension avec un auto-encoder**
+
+On souhaite réduire la dimension de nos datasets à l'aide d'auto-encodeurs : nous utiliserons 
+`python` pour entrainer les différents auto-encodeurs et récuperer les datasets réduits.
+
+On enregistre d'abord les fichiers en `.csv` pour les lire plus facilement sur `python` :
+
+```{r eval=FALSE}
+write.table(data.jaffe, "jaffe.csv", row.names=FALSE, sep=",",dec=".")
+write.table(data.MNIST, "MNIST.csv", row.names=FALSE, sep=",",dec=".")
+write.table(data.MFEA, "MFEA.csv", row.names=FALSE, sep=",",dec=".")
+write.table(data.USPS, "USPS.csv", row.names=FALSE, sep=",",dec=".")
+write.table(data.optidigits, "optidigits.csv", row.names=FALSE, sep=",",dec=".")
+```
+
+Après entrainment et réduction de dimension **(voir Entrainement_autoencoders.html)**
+on obtient les tableaux suivants : 
+
+### **Récupération des tableaux réduits**
+
+```{r}
+AE.jaffe <- read.csv('resultats/reduc_jaffe.csv', sep=',', dec='.')[-1]
+AE.MNIST <- read.csv('resultats/reduc_MNIST.csv', sep=',', dec='.')[-1]
+AE.MFEA <- read.csv('resultats/reduc_MFEA.csv', sep=',', dec='.')[-1]
+AE.USPS <- read.csv('resultats/reduc_USPS.csv', sep=',', dec='.')[-1]
+AE.optidigits <- read.csv('resultats/reduc_optidigits.csv', sep=',', dec='.')[-1]
+```
+
+### **Calcul des indices**
+
+On peut alors effectuer un EM avec `Mclust` sur nos datasets réduits pour calculer les indices tels que l'accuracy, la NMI et l'ARI.
+
+```{r}
+accuracy_score <- function(predicted.labels, true.labels){
+  # -------
+  # predicted.labels : labels found with clustering method
+  # -------
+  cm = table(predicted.labels, true.labels)
+  lin_assignement = solve_LSAP(cm, maximum=TRUE) # réalise algorithme hongrois
+  # pour maximiser la diagonale  http://search.r-project.org/library/clue/html/solve_LSAP.html
+  cm = table(lin_assignement[predicted.labels], true.labels)
+  
+  ratio <- sum(diag(cm))/length(predicted.labels)
+  return(ratio)
+}
+```
+
+```{r eval=FALSE}
+# Mclust
+em_AE.jaffe = Mclust(data = AE.jaffe[,1:2], G=10, verbose=FALSE)
+em_AE.MNIST = Mclust(data = AE.MNIST[,1:2], G=10, verbose=FALSE)
+em_AE.MFEA = Mclust(data = AE.MFEA[,1:2], G=10, verbose=FALSE)
+em_AE.USPS = Mclust(data = AE.USPS[,1:2], G=10, verbose=FALSE)
+em_AE.optidigits = Mclust(data = AE.optidigits[,1:2], G=10, verbose=FALSE)
+```
+
+```{r eval=FALSE, include=FALSE}
+saveRDS(em_AE.jaffe,"resultats/em_AE.jaffe")
+saveRDS(em_AE.MNIST,"resultats/em_AE.MNIST")
+saveRDS(em_AE.MFEA,"resultats/em_AE.MFEA")
+saveRDS(em_AE.USPS,"resultats/em_AE.USPS")
+saveRDS(em_AE.optidigits,"resultats/em_AE.optidigits")
+```
+
+```{r include=FALSE}
+em_AE.jaffe <- readRDS('resultats/em_AE.jaffe')
+em_AE.MNIST <- readRDS('resultats/em_AE.MNIST')
+em_AE.MFEA <- readRDS('resultats/em_AE.MFEA')
+em_AE.USPS <- readRDS('resultats/em_AE.USPS')
+em_AE.optidigits <- readRDS('resultats/em_AE.optidigits')
+```
+
+```{r eval=FALSE}
+# tout comme les tableaux en question 10
+df.EM_AE = data.frame(row.names = 'jaffe')
+df.EM_AE$accuracy = accuracy_score(em_AE.jaffe$classification, data.jaffe$class)
+df.EM_AE$nmi = NMI(em_AE.jaffe$classification, data.jaffe$class)
+df.EM_AE$ari = ARI(em_AE.jaffe$classification, data.jaffe$class)
+
+function1 <- function(em, data, name){
+  temp = data.frame(row.names = name)
+  temp$accuracy = accuracy_score(em$classification, data$class)
+  temp$nmi = NMI(em$classification, data$class)
+  temp$ari = ARI(em$classification, data$class)
+  return(temp)
+}
+
+temp = function1(em_AE.MNIST,data.MNIST,'MNIST')
+df.EM_AE = rbind(df.EM_AE, temp)
+temp = function1(em_AE.USPS,data.USPS,'USPS')
+df.EM_AE = rbind(df.EM_AE, temp)
+temp = function1(em_AE.MFEA,data.MFEA,'MFEA')
+df.EM_AE = rbind(df.EM_AE, temp)
+temp = function1(em_AE.optidigits,data.optidigits,'optidigits')
+df.EM_AE = rbind(df.EM_AE, temp)
+```
+
+```{r eval=FALSE, include=FALSE}
+saveRDS(df.EM_AE,"resultats/df.EM_AE")
+```
+
+```{r include=FALSE}
+df.EM_AE <- readRDS("resultats/df.EM_AE")
+```
+
+
+```{r}
+df.EM_AE
+```
+
+La méthode de réduction de dimension via un auto-encodeur semble être très efficace 
+pour le dataset `optidigits` et montre des résultats assez faible en termes d'accuracy
+et d'ARI pour les autres.
+
+
+

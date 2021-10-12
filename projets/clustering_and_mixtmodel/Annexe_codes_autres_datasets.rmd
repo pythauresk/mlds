@@ -1,0 +1,513 @@
+---
+title: "Annexe : Codes autres datasets"
+output: html_document
+---
+
+## MNIST
+
+```{r eval=FALSE}
+set.seed(42)
+# MNIST kmeans 
+km.MNIST=NbClust(data.MNIST[,-785], method = "kmeans", distance = "euclidean",
+                 index = "silhouette", min.nc = 5, max.nc = 30)
+
+# MNIST CAH WARD 
+ward.MNIST=NbClust(data.MNIST[,-785], method = "ward.D",index = "silhouette",
+                   min.nc = 5,  max.nc = 30)
+# MNIST CAH AVERAGE
+average.MNIST=NbClust(data.MNIST[,-785],method = "average",
+                      index = "silhouette", min.nc = 5, max.nc = 30)
+
+# MNIST CAH SINGLE 
+single.MNIST=NbClust(data.MNIST[,-785],method = "single",index = "silhouette",
+                     min.nc = 5, max.nc = 30)
+
+
+#  MNIST CAH COMPLETE
+complete.MNIST=NbClust(data.MNIST[,-785],method = "complete",index = "silhouette",
+                       min.nc = 5, max.nc = 30)
+
+```
+
+```{r eval=FALSE, include=FALSE}
+saveRDS(km.MNIST,"resultats/km.MNIST")
+saveRDS(ward.MNIST,"resultats/ward.MNIST")
+saveRDS(average.MNIST,"resultats/average.MNIST")
+saveRDS(single.MNIST,"resultats/single.MNIST")
+saveRDS(complete.MNIST,"resultats/complete.MNIST")
+```
+
+
+```{r}
+#MNIST
+hcpcward.MNIST=HCPC(pca.MNIST,nb.clust = -1, method = "ward", graph=FALSE)
+
+hcpccomp.MNIST=HCPC(pca.MNIST,nb.clust = -1, method = "complete", graph=FALSE)
+
+hcpcsingle.MNIST=HCPC(pca.MNIST,nb.clust = -1, method = "single", graph=FALSE)
+
+hcpcav.MNIST=HCPC(pca.MNIST,nb.clust = -1, method = "average", graph=FALSE)
+```
+
+
+```{r eval=FALSE, include=FALSE}
+saveRDS(hcpcward.MNIST$data.clust$clust,"resultats/hcpcward.MNIST")
+saveRDS(hcpcav.MNIST$data.clust$clust,"resultats/hcpcav.MNIST")
+saveRDS(hcpcsingle.MNIST$data.clust$clust,"resultats/hcpcsingle.MNIST")
+saveRDS(hcpccomp.MNIST$data.clust$clust,"resultats/hcpccomp.MNIST")
+```
+
+```{r}
+#MNIST
+table(km.MNIST$Best.partition,data.MNIST$class)
+
+table(ward.MNIST$Best.partition,data.MNIST$class)
+table(hcpcward.MNIST$data.clust$clust, data.MNIST$class)
+
+table(average.MNIST$Best.partition,data.MNIST$class)
+table(hcpcav.MNIST$data.clust$clust, data.MNIST$class)
+
+table(single.MNIST$Best.partition, data.MNIST$class)
+table(hcpcsingle.MNIST$data.clust$clust, data.MNIST$class)
+
+table(complete.MNIST$Best.partition, data.MNIST$class)
+table(hcpccomp.MNIST$data.clust$clust, data.MNIST$class)
+```
+
+<!-- MAtrice de confusion -->
+
+```{r}
+# Rmixmod
+pc.MNIST = prcomp(data.MNIST[,!colnames(data.MNIST)=='class']) 
+
+# definition d'une stratégie nécessaire
+strategie = mixmodStrategy(algo="EM", initMethod="smallEM",
+                         nbTry=10, epsilonInInit=0.00001)
+em_mix.MNIST = mixmodCluster(data=as.data.frame(pc.MNIST$x[,1:10]), nbCluster=10,
+                        strategy=strategie, dataType="quantitative",
+                        models=mixmodGaussianModel(listModels=c("Gaussian_p_Lk_C")))
+
+# Mclust
+em_mc.MNIST = Mclust(data = pc.MNIST$x[,1:10], G=10, verbose=FALSE)
+```
+
+```{r eval=FALSE, include=FALSE}
+saveRDS(em_mix.MNIST@bestResult@partition, "resultats/em_mix.MNIST")
+saveRDS(em_mc.MNIST$classification, "resultats/em_mc.MNIST")
+```
+
+## MFEA
+
+```{r eval=FALSE}
+set.seed(42)
+# MFEA kmeans 
+km.MFEA=NbClust(data.MFEA[,-241], method = "kmeans", distance = "euclidean", index = "silhouette",min.nc = 5, max.nc = 20)
+
+# MFEA CAH WARD 
+ward.MFEA=NbClust(data.MFEA[,-241],method = "ward.D",index = "silhouette",min.nc = 5,  max.nc = 20)
+# MFEA CAH AVERAGE
+average.MFEA=NbClust(data.MFEA[,-241],method = "average", min.nc = 5, max.nc = 30,index = "silhouette")
+
+# MFEA CAH SINGLE 
+single.MFEA=NbClust(data.MFEA[,-241],method = "single",index = "silhouette", min.nc = 5, max.nc = 30)
+
+# MFEA CAH COMPLTE
+complete.MFEA=NbClust(data.MFEA[,-241],method = "complete",index = "silhouette", min.nc = 5, max.nc = 30)
+```
+
+```{r eval=FALSE, include=FALSE}
+saveRDS(km.MFEA,"resultats/km.MFEA")
+saveRDS(ward.MFEA,"resultats/ward.MFEA")
+saveRDS(average.MFEA,"resultats/average.MFEA")
+saveRDS(single.MFEA,"resultats/single.MFEA")
+saveRDS(complete.MFEA,"resultats/complete.MFEA")
+```
+
+```{r}
+#MFEA
+hcpcward.MFEA=HCPC(pca.MFEA,nb.clust = -1, method = "ward", graph=FALSE)
+
+hcpccomp.MFEA=HCPC(pca.MFEA,nb.clust = -1, method = "complete", graph=FALSE)
+
+hcpcsingle.MFEA=HCPC(pca.MFEA,nb.clust = -1, method = "single", graph=FALSE)
+
+hcpcav.MFEA=HCPC(pca.MFEA,nb.clust = -1, method = "average", graph=FALSE)
+```
+
+```{r eval=FALSE, include=FALSE}
+saveRDS(hcpcward.MFEA$data.clust$clust,"resultats/hcpcward.MFEA")
+saveRDS(hcpcav.MFEA$data.clust$clust,"resultats/hcpcav.MFEA")
+saveRDS(hcpcsingle.MFEA$data.clust$clust,"resultats/hcpcsingle.MFEA")
+saveRDS(hcpccomp.MFEA$data.clust$clust,"resultats/hcpccomp.MFEA")
+```
+
+```{r}
+#MFEA
+table(km.MFEA$Best.partition,data.MFEA$class)
+
+table(ward.MFEA$Best.partition,data.MFEA$class)
+table(hcpcward.MFEA$data.clust$clust, data.MFEA$class)
+
+table(average.MFEA$Best.partition,data.MFEA$class)
+table(hcpcav.jaffe$data.clust$clust, data.jaffe$class)
+
+table(single.MFEA$Best.partition, data.MFEA$class)
+table(hcpcsingle.MFEA$data.clust$clust, data.MFEA$class)
+
+table(complete.MFEA$Best.partition, data.MFEA$class)
+table(hcpccomp.MFEA$data.clust$clust, data.MFEA$class)
+```
+
+<!-- MAtrice de confusion -->
+
+
+```{r}
+# Rmixmod
+pc.MFEA = prcomp(data.MFEA[,!colnames(data.MFEA)=='class']) 
+
+# definition d'une stratégie nécessaire
+strategie = mixmodStrategy(algo="EM", initMethod="smallEM",
+                         nbTry=10, epsilonInInit=0.00001)
+em_mix.MFEA = mixmodCluster(data=as.data.frame(pc.MFEA$x[,1:10]), nbCluster=10,
+                        strategy=strategie, dataType="quantitative",
+                        models=mixmodGaussianModel(listModels=c("Gaussian_p_Lk_C")))
+
+# Mclust
+em_mc.MFEA = Mclust(data = pc.MFEA$x[,1:10], G=10, verbose=FALSE)
+```
+
+```{r eval=FALSE, include=FALSE}
+saveRDS(em_mix.MFEA@bestResult@partition, "resultats/em_mix.MFEA")
+saveRDS(em_mc.MFEA$classification, "resultats/em_mc.MFEA")
+```
+
+## USPS
+
+```{r eval=FALSE}
+set.seed(42)
+# USPS kmeans 
+km.USPS=NbClust(data.USPS[,-257], method = "kmeans", distance = "euclidean", index = "silhouette",
+                min.nc = 5, max.nc = 20)
+
+# USPS CAH WARD 
+ward.USPS=NbClust(data.USPS[,-257],method = "ward.D",index = "silhouette",
+                  min.nc = 5,  max.nc = 20)
+
+# USPS CAH AVERAGE
+average.USPS=NbClust(data.USPS[,-257],method = "average", index = "silhouette", 
+                  min.nc = 5, max.nc = 30)
+
+# USPS CAH SINGLE 
+single.USPS=NbClust(data.USPS[,-257],method = "single",index = "silhouette", 
+                    min.nc = 5, max.nc = 30)
+
+# USPS complete
+complete.USPS=NbClust(data.USPS[,-257],method = "complete",index = "silhouette", 
+                      min.nc = 5, max.nc = 30)
+
+```
+
+```{r}
+plot(pca.USPS$ind$coord,col=km.USPS$Best.partition, main = "Kmeans sur USPS")
+plot(pca.USPS$ind$coord,col=ward.USPS$Best.partition,main = "CAH Ward sur USPS")
+plot(pca.USPS$ind$coord,col=average.USPS$Best.partition,main = "CAH average sur USPS")
+plot(pca.USPS$ind$coord,col=single.USPS$Best.partition,main = "CAH single sur USPS")
+plot(pca.USPS$ind$coord,col=complete.USPS$Best.partition,main = "CAH complete sur USPS")
+```
+
+```{r eval=FALSE, include=FALSE}
+saveRDS(km.USPS,"resultats/km.USPS")
+saveRDS(ward.USPS,"resultats/ward.USPS")
+saveRDS(average.USPS,"resultats/average.USPS")
+saveRDS(single.USPS,"resultats/single.USPS")
+saveRDS(complete.USPS,"resultats/complete.USPS")
+```
+
+```{r}
+#USPS
+hcpcward.USPS=HCPC(pca.USPS,nb.clust = -1, method = "ward", graph=FALSE)
+
+hcpccomp.USPS=HCPC(pca.USPS,nb.clust = -1, method = "complete", graph=FALSE)
+
+hcpcsingle.USPS=HCPC(pca.USPS,nb.clust = -1, method = "single", graph=FALSE)
+
+hcpcav.USPS=HCPC(pca.USPS,nb.clust = -1, method = "average", graph=FALSE)
+```
+
+```{r eval=FALSE, include=FALSE}
+saveRDS(hcpcward.USPS$data.clust$clust,"resultats/hcpcward.USPS")
+saveRDS(hcpcav.USPS$data.clust$clust,"resultats/hcpcav.USPS")
+saveRDS(hcpcsingle.USPS$data.clust$clust,"resultats/hcpcsingle.USPS")
+saveRDS(hcpccomp.USPS$data.clust$clust,"resultats/hcpccomp.USPS")
+```
+
+```{r}
+#USPS
+table(km.USPS$Best.partition,data.USPS$class)
+
+table(ward.USPS$Best.partition,data.USPS$class)
+table(hcpcward.USPS$data.clust$clust, data.USPS$class)
+
+table(average.USPS$Best.partition,data.USPS$class)
+table(hcpcward.USPS$data.clust$clust, data.USPS$class)
+
+table(single.USPS$Best.partition,data.USPS$class)
+table(hcpcward.USPS$data.clust$clust, data.USPS$class)
+
+table(complete.USPS$Best.partition,data.USPS$class)
+table(hcpccomp.USPS$data.clust$clust, data.USPS$class)
+```
+
+<!-- MAtrice de confusion -->
+
+```{r}
+# Rmixmod
+pc.USPS = prcomp(data.USPS[,!colnames(data.USPS)=='class']) 
+
+# definition d'une stratégie nécessaire
+strategie = mixmodStrategy(algo="EM", initMethod="smallEM",
+                         nbTry=10, epsilonInInit=0.00001)
+em_mix.USPS = mixmodCluster(data=as.data.frame(pc.USPS$x[,1:10]), nbCluster=10,
+                        strategy=strategie, dataType="quantitative",
+                        models=mixmodGaussianModel(listModels=c("Gaussian_p_Lk_C")))
+
+# Mclust
+em_mc.USPS = Mclust(data = pc.USPS$x[,1:10], G=10, verbose=FALSE)
+```
+
+```{r eval=FALSE, include=FALSE}
+saveRDS(em_mix.USPS@bestResult@partition, "resultats/em_mix.USPS")
+saveRDS(em_mc.USPS$classification, "resultats/em_mc.USPS")
+```
+
+## Optidigits
+
+```{r eval=FALSE}
+set.seed(42)
+# optidigits kmeans
+km.optidigits=NbClust(data.optidigits[,-65], method = "kmeans", distance = "euclidean", index = "silhouette",min.nc = 5, max.nc = 20)
+# optidigits CAH WARD 
+ward.optidigits=NbClust(data.optidigits[,-65],method = "ward.D",index = "silhouette",min.nc = 5,  max.nc = 20)
+
+# optidigits CAH AVERAGE
+average.optidigits=NbClust(data.optidigits[,-65],method = "average", min.nc = 5, max.nc = 30,index = "silhouette")
+
+# optidigits CAH SINGLE 
+single.optidigits=NbClust(data.optidigits[,-65],method = "single",index = "silhouette", min.nc = 5, max.nc = 30)
+
+# optidigits complete
+complete.optidigits=NbClust(data.optidigits[,-65],method = "complete",index = "silhouette", min.nc = 5, max.nc = 30)
+```
+
+```{r}
+plot(pca.optidigits$ind$coord,col=km.optidigits$Best.partition, main = "Kmeans sur optidigits")
+plot(pca.optidigits$ind$coord,col=ward.optidigits$Best.partition,main = "CAH Ward sur optidigits")
+plot(pca.jaffe$ind$coord,col=average.jaffe$Best.partition,main = "CAH average sur optidigits")
+plot(pca.jaffe$ind$coord,col=single.optidigits$Best.partition,main = "CAH single sur optidigits")
+plot(pca.optidigits$ind$coord,col=complete.optidigits$Best.partition,main = "CAH complete sur optidigits")
+```
+
+```{r eval=FALSE, include=FALSE}
+saveRDS(km.optidigits,"resultats/km.optidigits")
+saveRDS(ward.optidigits,"resultats/ward.optidigits")
+saveRDS(average.optidigits,"resultats/average.optidigits")
+saveRDS(single.optidigits,"resultats/single.optidigits")
+saveRDS(complete.optidigits,"resultats/complete.optidigits")
+```
+
+
+```{r}
+#OPTIDIGITS
+hcpcward.optidigits=HCPC(pca.optidigits,nb.clust = -1, method = "ward", graph=FALSE)
+
+hcpccomp.optidigits=HCPC(pca.optidigits,nb.clust = -1, method = "complete", graph=FALSE)
+
+hcpcsingle.optidigits=HCPC(pca.optidigits,nb.clust = -1, method = "single", graph=FALSE)
+
+hcpcav.optidigits=HCPC(pca.optidigits,nb.clust = -1, method = "average", graph=FALSE)
+```
+
+```{r eval=FALSE, include=FALSE}
+saveRDS(hcpcward.optidigits$data.clust$clust,"resultats/hcpcward.optidigits")
+saveRDS(hcpcav.optidigits$data.clust$clust,"resultats/hcpcav.optidigits")
+saveRDS(hcpcsingle.optidigits$data.clust$clust,"resultats/hcpcsingle.optidigits")
+saveRDS(hcpccomp.optidigits$data.clust$clust,"resultats/hcpccomp.optidigits")
+```
+
+```{r}
+#OPTIDIGITS
+table(km.optidigits$Best.partition,data.optidigits$class)
+
+table(ward.optidigits$Best.partition,data.optidigits$class)
+table(hcpcward.optidigits$data.clust$clust, data.optidigits$class)
+
+table(average.optidigits$Best.partition,data.optidigits$class)
+table(hcpcward.optidigits$data.clust$clust, data.optidigits$class)
+
+table(single.optidigits$Best.partition,data.optidigits$class)
+table(hcpcward.optidigits$data.clust$clust, data.optidigits$class)
+
+table(complete.optidigits$Best.partition,data.optidigits$class)
+table(hcpcward.optidigits$data.clust$clust, data.optidigits$class)
+```
+
+<!-- MAtrice de confusion -->
+
+```{r}
+# Rmixmod
+pc.optidigits = prcomp(data.optidigits[,!colnames(data.optidigits)=='class']) 
+
+# definition d'une stratégie nécessaire
+strategie = mixmodStrategy(algo="EM", initMethod="smallEM",
+                         nbTry=10, epsilonInInit=0.00001)
+em_mix.optidigits = mixmodCluster(data=as.data.frame(pc.optidigits$x[,1:10]), nbCluster=10,
+                        strategy=strategie, dataType="quantitative",
+                        models=mixmodGaussianModel(listModels=c("Gaussian_p_Lk_C")))
+
+# Mclust
+em_mc.optidigits = Mclust(data = pc.optidigits$x[,1:10], G=10, verbose=FALSE)
+```
+
+```{r eval=FALSE, include=FALSE}
+saveRDS(em_mix.optidigits@bestResult@partition, "resultats/em_mix.optidigits")
+saveRDS(em_mc.optidigits$classification, "resultats/em_mc.optidigits")
+```
+
+## Création des tableaux questions 10-11
+
+```{r eval=FALSE}
+library(iterators)
+# function to create row of a dataframe with a certain indicator (bad-ratio,NMI and ARI)
+apply_clustering <- function(data, pca.data, mc.data, mix.data, rowname){
+  # -------
+  # data : original data, pca.data : PCA on data
+  # mc.data : EM with mclust on data  (em_mc.X)
+  # mix.data : EM with Rmixmod on data (em_mix.X)
+  # rowname : name of data, fun_indice : function bad_radio, aricode::NMI or aricode::ARI
+  # -------
+  # init data.frame
+  
+  # for printing progress
+  iterator = iter(seq(1, 11, length.out = 11))
+  progress <- function(){cat(nextElem(iterator), "/11\r") ; flush.console()}
+  # ----
+  
+  tmc = data.frame(rownames=rowname)
+  nmi = data.frame(rownames=rowname)
+  ari = data.frame(rownames=rowname)
+  results.data <- NbClust(data[,!colnames(data)=='class'], method = "kmeans",
+                         distance = "euclidean", index = "silhouette", 
+                         min.nc = 10, max.nc = 10)
+  tmc$kmeans = bad_ratio(results.data$Best.partition, data$class)
+  nmi$kmeans = NMI(results.data$Best.partition, data$class)
+  ari$kmeans = ARI(results.data$Best.partition, data$class)
+  saveRDS(results.data$Best.partition, paste('resultats/km_10.', rowname, sep=""))
+  progress()
+  
+  results.data <- NbClust(data[,!colnames(data)=='class'], method="ward.D",
+                         index="silhouette", min.nc=10,  max.nc=10)
+  tmc$ward = bad_ratio(results.data$Best.partition, data$class)
+  nmi$ward = NMI(results.data$Best.partition, data$class)
+  ari$ward = ARI(results.data$Best.partition, data$class)
+  saveRDS(results.data$Best.partition, paste('resultats/ward_10.', rowname, sep=""))
+  progress()
+  
+  results.data <- NbClust(data[,!colnames(data)=='class'], method="average",
+                         index="silhouette", min.nc=10,  max.nc=10)
+  tmc$average = bad_ratio(results.data$Best.partition, data$class)
+  nmi$average = NMI(results.data$Best.partition, data$class)
+  ari$average = ARI(results.data$Best.partition, data$class)
+  saveRDS(results.data$Best.partition, paste('resultats/average_10.', rowname, sep=""))
+  progress()
+  
+  results.data <- NbClust(data[,!colnames(data)=='class'], method="single",
+                         index="silhouette", min.nc=10,  max.nc=10)
+  tmc$single = bad_ratio(results.data$Best.partition, data$class)
+  nmi$single = NMI(results.data$Best.partition, data$class)
+  ari$single = ARI(results.data$Best.partition, data$class)
+  saveRDS(results.data$Best.partition, paste('resultats/single_10.', rowname, sep=""))
+  progress()
+  
+  results.data <- NbClust(data[,!colnames(data)=='class'], method="complete",
+                         index="silhouette", min.nc=10,  max.nc=10)
+  tmc$complete = bad_ratio(results.data$Best.partition, data$class)
+  nmi$complete = NMI(results.data$Best.partition, data$class)
+  ari$complete = ARI(results.data$Best.partition, data$class)
+  saveRDS(results.data$Best.partition, paste('resultats/complete_10.', rowname, sep=""))
+  progress()
+  
+  results.data <- HCPC(pca.data, nb.clust=10, method="ward", graph=FALSE)
+  tmc$HCPCward = bad_ratio(results.data$data.clust$clust, data$class)
+  nmi$HCPCward = NMI(results.data$data.clust$clust, data$class)
+  ari$HCPCward = ARI(results.data$data.clust$clust, data$class)
+  saveRDS(results.data$data.clust$clust, paste('resultats/hcpcward_10.', rowname, sep=""))
+  progress()
+  
+  results.data <- HCPC(pca.data, nb.clust=10, method="complete", graph=FALSE)
+  tmc$HCPCcomplete = bad_ratio(results.data$data.clust$clust, data$class)
+  nmi$HCPCcomplete = NMI(results.data$data.clust$clust, data$class)
+  ari$HCPCcomplete = ARI(results.data$data.clust$clust, data$class)
+  saveRDS(results.data$data.clust$clust, paste('resultats/hcpccomp_10.', rowname, sep=""))
+  progress()
+  
+  results.data <- HCPC(pca.data, nb.clust=10, method="single", graph=FALSE)
+  tmc$HCPCsingle = bad_ratio(results.data$data.clust$clust, data$class)
+  nmi$HCPCsingle = NMI(results.data$data.clust$clust, data$class)
+  ari$HCPCsingle = ARI(results.data$data.clust$clust, data$class)
+  saveRDS(results.data$data.clust$clust, paste('resultats/hcpcsingle_10.', rowname, sep=""))
+  progress()
+  
+  results.data <- HCPC(pca.data, nb.clust=10, method="average", graph=FALSE)
+  tmc$HCPCaverage = bad_ratio(results.data$data.clust$clust, data$class)
+  nmi$HCPCaverage = NMI(results.data$data.clust$clust, data$class)
+  ari$HCPCaverage = ARI(results.data$data.clust$clust, data$class)
+  saveRDS(results.data$data.clust$clust, paste('resultats/hcpcav_10.', rowname, sep=""))
+  progress()
+  
+  
+  tmc$EMmc = bad_ratio(mc.data, data$class)
+  nmi$EMmc = NMI(mc.data, data$class)
+  ari$EMmc = ARI(mc.data, data$class)
+  # déjà enregistré
+  progress()
+  
+  tmc$EMrmixmod = bad_ratio(mix.data, data$class)
+  nmi$EMrmixmod = NMI(mix.data, data$class)
+  ari$EMrmixmod = ARI(mix.data, data$class)
+  # déjà enregistré
+  progress()
+  return(list(tmc , nmi, ari))
+}
+```
+
+```{r}
+temp = apply_clustering(data.jaffe, pca.jaffe, em_mc.jaffe, em_mix.jaffe, 'jaffe')
+df.tmc = temp[[1]]
+df.nmi = temp[[2]]
+df.ari = temp[[3]]
+
+temp = apply_clustering(data.MNIST, pca.MNIST, em_mc.MNIST, em_mix.MNIST, 'MNIST')
+df.tmc = rbind(df.tmc, temp[[1]])
+df.nmi = rbind(df.nmi, temp[[2]])
+df.ari = rbind(df.ari, temp[[3]])
+
+temp = apply_clustering(data.MFEA, pca.MFEA, em_mc.MFEA, em_mix.MFEA, 'MFEA')
+df.tmc = rbind(df.tmc, temp[[1]])
+df.nmi = rbind(df.nmi, temp[[2]])
+df.ari = rbind(df.ari, temp[[3]])
+
+temp = apply_clustering(data.USPS, pca.USPS, em_mc.USPS, em_mix.USPS, 'USPS')
+df.tmc = rbind(df.tmc, temp[[1]])
+df.nmi = rbind(df.nmi, temp[[2]])
+df.ari = rbind(df.ari, temp[[3]])
+
+temp = apply_clustering(data.optidigits, pca.optidigits, em_mc.optidigits, 
+                        em_mix.optidigits, 'optidigits')
+df.tmc = rbind(df.tmc, temp[[1]])
+df.nmi = rbind(df.nmi, temp[[2]])
+df.ari = rbind(df.ari, temp[[3]])
+
+saveRDS(df.tmc, "resultats/df.tmc")
+saveRDS(df.nmi, "resultats/df.nmi")
+saveRDS(df.ari, "resultats/df.ari")
+```
